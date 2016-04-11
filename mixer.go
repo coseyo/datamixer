@@ -90,17 +90,20 @@ func (m *Mixer) getTotalWeight(pdts []processDataType) (totalWeight int64) {
 
 func (m *Mixer) getRealLimit(pdts []processDataType, totalWeight int64) (limitMap map[string]int64) {
 
-	var (
-		leftLimit int64
-	)
-
 	pdtsLen := len(pdts)
 	leftDataCount := make(map[string]int64, pdtsLen)
 
 	for k, pdt := range pdts {
 
-		if pdt.DataCount < m.GlobalLimit {
-			limit = (pdt.Weight / totalWeight) * pdt.DataCount
+		weightPercent := pdt.Weight / totalWeight
+
+		theoryLimit = weightPercent * m.GlobalLimit
+		realLimit = weightPercent * pdt.DataCount
+
+		if pdt.DataCount > theoryLimit {
+
+			// log left data for
+			leftDataCount[pdt.Name] = pdt.DataCount - theoryLimit
 		}
 
 	}
