@@ -55,25 +55,14 @@ func (m *Mixer) Mix(datas []SourceData) (dataRes DataResponse, err error) {
 func (m *Mixer) mixResp(pdts []processDataType) (retResp DataResponse, err error) {
 
 	var (
-		limit,
-		leftDataCount,
-		dataCount int64
+		limit int64
 	)
 
 	totalWeight := m.getTotalWeight(pdts)
+	limitMap := m.getRealLimitMap(pdts, totalWeight)
 
 	for _, pdt := range pdts {
-
-		limit = (pdt.Weight / totalWeight) * m.GlobalLimit
-
-		dataCount = pdt.DataCount
-
-		if dataCount < limit {
-			leftDataCount = limit - dataCount
-
-			limit = dataCount
-		}
-
+		limit = limitMap[pdt.Name]
 		retResp.Data = append(retResp.Data, pdt.Resp.Data[:limit]...)
 		retResp.Total += pdt.Resp.Total
 	}
@@ -88,7 +77,7 @@ func (m *Mixer) getTotalWeight(pdts []processDataType) (totalWeight int64) {
 	return
 }
 
-func (m *Mixer) getRealLimit(pdts []processDataType, totalWeight int64) (limitMap map[string]int64) {
+func (m *Mixer) getRealLimitMap(pdts []processDataType, totalWeight int64) (limitMap map[string]int64) {
 
 	pdtsLen := len(pdts)
 	leftDataCountMap := make(map[string]int64, pdtsLen)
@@ -115,7 +104,7 @@ func (m *Mixer) getRealLimit(pdts []processDataType, totalWeight int64) (limitMa
 		limitMap[pdt.Name] = realLimit
 	}
 
-	if needFillCount > 0 && len(leftDataCount) > 0 {
+	if needFillCount > 0 && len(leftDataCountMap) > 0 {
 		for name, leftDataCount := range leftDataCountMap {
 			if needFillCount <= 0 {
 				break
