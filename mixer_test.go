@@ -80,7 +80,7 @@ func Test_Mixer1(t *testing.T) {
 	}
 
 	m := &Mixer{
-		GlobalLimit: 10,
+		GlobalLimit: 5,
 	}
 
 	data1, _ := getData2("", 0, 0)
