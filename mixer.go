@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 )
 
 type processDataType struct {
 	Name      string
 	Resp      DataResponse
 	DataCount int64
+	Offset    int64
 	Weight    int64
 }
 
@@ -17,35 +19,9 @@ type Mixer struct {
 	GlobalLimit int64
 }
 
-func (m *Mixer) Mix(datas []SourceData) (dataRes DataResponse, err error) {
-	//	var wg sync.WaitGroup
-	pdts := []processDataType{}
+func (m *Mixer) Mix(datas []SourceData) (dataRes DataResponse, nextOffsetMap map[string]int64, err error) {
 
-	for _, sd := range datas {
-		//		go func() {
-		//			wg.Add(1)
-		//			defer wg.Done()
-
-		sDataRes, sErr := sd.GetData(sd.Params, m.GlobalLimit, sd.Offset)
-		if sErr != nil {
-			err = errors.New(fmt.Sprintf("%s %s:%s", err.Error(), sd.Name, sErr.Error()))
-		}
-
-		dataLen := int64(len(sDataRes.Data))
-
-		if dataLen > 0 {
-			pdts = append(pdts, processDataType{
-				Name:      sd.Name,
-				Resp:      sDataRes,
-				DataCount: dataLen,
-				Weight:    sd.Weight,
-			})
-		}
-		//		}()
-	}
-
-	//	wg.Wait()
-
+	pdts, err := m.processData(datas)
 	if err != nil {
 		return
 	}
@@ -57,13 +33,47 @@ func (m *Mixer) Mix(datas []SourceData) (dataRes DataResponse, err error) {
 	return m.mixResp(pdts)
 }
 
-func (m *Mixer) mixResp(pdts []processDataType) (retResp DataResponse, err error) {
+func (m *Mixer) processData(datas []SourceData) (pdts []processDataType, err error) {
+	var wg sync.WaitGroup
+
+	for _, sd := range datas {
+
+		wg.Add(1)
+		go func(sd SourceData) {
+			defer wg.Done()
+
+			sDataRes, sErr := sd.GetData(sd.Params, m.GlobalLimit, sd.Offset)
+			if sErr != nil {
+				err = errors.New(fmt.Sprintf("%s %s:%s", err.Error(), sd.Name, sErr.Error()))
+			}
+
+			dataLen := int64(len(sDataRes.Data))
+
+			if dataLen > 0 {
+				pdts = append(pdts, processDataType{
+					Name:      sd.Name,
+					Resp:      sDataRes,
+					DataCount: dataLen,
+					Offset:    sd.Offset,
+					Weight:    sd.Weight,
+				})
+			}
+		}(sd)
+	}
+
+	wg.Wait()
+
+	return
+}
+
+func (m *Mixer) mixResp(pdts []processDataType) (retResp DataResponse, nextOffsetMap map[string]int64, err error) {
 
 	var (
 		limit int64
 	)
 
 	totalWeight := m.getTotalWeight(pdts)
+	nextOffsetMap = make(map[string]int64)
 
 	fmt.Println("totalWeight")
 	fmt.Println(totalWeight)
@@ -77,6 +87,8 @@ func (m *Mixer) mixResp(pdts []processDataType) (retResp DataResponse, err error
 		limit = limitMap[pdt.Name]
 		retResp.Data = append(retResp.Data, pdt.Resp.Data[:limit]...)
 		retResp.Total += pdt.Resp.Total
+		nextOffsetMap[pdt.Name] = pdt.Offset + limit
+
 	}
 
 	return
