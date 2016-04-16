@@ -49,7 +49,7 @@ func (m *Mixer) processData(datas []SourceData) (pdts []processDataType, err err
 
 			dataLen := int64(len(sDataRes.Data))
 
-			if dataLen > 0 {
+			if sDataRes.Total > 0 {
 				pdts = append(pdts, processDataType{
 					Name:      sd.Name,
 					Resp:      sDataRes,
@@ -75,13 +75,11 @@ func (m *Mixer) mixResp(pdts []processDataType) (retResp DataResponse, nextOffse
 	totalWeight := m.getTotalWeight(pdts)
 	nextOffsetMap = make(map[string]int64)
 
-	fmt.Println("totalWeight")
-	fmt.Println(totalWeight)
+	fmt.Println("totalWeight", totalWeight)
 
 	limitMap := m.getRealLimitMap(pdts, totalWeight)
 
-	fmt.Println("limitMap")
-	fmt.Println(limitMap)
+	fmt.Println("limitMap", limitMap)
 
 	for _, pdt := range pdts {
 		limit = limitMap[pdt.Name]
@@ -118,7 +116,6 @@ func (m *Mixer) getRealLimitMap(pdts []processDataType, totalWeight int64) (limi
 	for k, pdt := range pdts {
 
 		weightPercent = float64(pdt.Weight) / float64(totalWeight)
-
 		theoryLimit = int64(round(weightPercent * float64(m.GlobalLimit)))
 		totalTheoryLimit += theoryLimit
 
@@ -126,7 +123,6 @@ func (m *Mixer) getRealLimitMap(pdts []processDataType, totalWeight int64) (limi
 			theoryLimit = m.GlobalLimit - (totalTheoryLimit - theoryLimit)
 		}
 
-		fmt.Println("m.GlobalLimit", m.GlobalLimit)
 		fmt.Println(pdt.Name, "pdt.Weight", pdt.Weight)
 		fmt.Println(pdt.Name, "totalWeight", totalWeight)
 		fmt.Println(pdt.Name, "weightPercent", weightPercent)
@@ -142,7 +138,6 @@ func (m *Mixer) getRealLimitMap(pdts []processDataType, totalWeight int64) (limi
 		}
 
 		limitMap[pdt.Name] = realLimit
-
 	}
 
 	if needFillCount > 0 && len(leftDataCountMap) > 0 {
