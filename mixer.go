@@ -20,7 +20,6 @@ type Mixer struct {
 }
 
 func (m *Mixer) Mix(datas []SourceData) (dataRes DataResponse, nextOffsetMap map[string]int64, err error) {
-
 	pdts, err := m.processData(datas)
 	if err != nil {
 		return
@@ -37,7 +36,6 @@ func (m *Mixer) processData(datas []SourceData) (pdts []processDataType, err err
 	var wg sync.WaitGroup
 
 	for _, sd := range datas {
-
 		wg.Add(1)
 		go func(sd SourceData) {
 			defer wg.Done()
@@ -67,7 +65,6 @@ func (m *Mixer) processData(datas []SourceData) (pdts []processDataType, err err
 }
 
 func (m *Mixer) mixResp(pdts []processDataType) (retResp DataResponse, nextOffsetMap map[string]int64, err error) {
-
 	var (
 		limit int64
 	)
@@ -75,11 +72,11 @@ func (m *Mixer) mixResp(pdts []processDataType) (retResp DataResponse, nextOffse
 	totalWeight := m.getTotalWeight(pdts)
 	nextOffsetMap = make(map[string]int64)
 
-	fmt.Println("totalWeight", totalWeight)
+	//	fmt.Println("totalWeight", totalWeight)
 
 	limitMap := m.getRealLimitMap(pdts, totalWeight)
 
-	fmt.Println("limitMap", limitMap)
+	//	fmt.Println("limitMap", limitMap)
 
 	for _, pdt := range pdts {
 		limit = limitMap[pdt.Name]
@@ -100,11 +97,6 @@ func (m *Mixer) getTotalWeight(pdts []processDataType) (totalWeight int64) {
 }
 
 func (m *Mixer) getRealLimitMap(pdts []processDataType, totalWeight int64) (limitMap map[string]int64) {
-
-	pdtsLen := len(pdts)
-	leftDataCountMap := make(map[string]int64, pdtsLen)
-	limitMap = make(map[string]int64, pdtsLen)
-
 	var (
 		weightPercent float64
 		theoryLimit,
@@ -112,6 +104,9 @@ func (m *Mixer) getRealLimitMap(pdts []processDataType, totalWeight int64) (limi
 		realLimit,
 		needFillCount int64
 	)
+	pdtsLen := len(pdts)
+	leftDataCountMap := make(map[string]int64, pdtsLen)
+	limitMap = make(map[string]int64, pdtsLen)
 
 	for k, pdt := range pdts {
 
@@ -123,11 +118,11 @@ func (m *Mixer) getRealLimitMap(pdts []processDataType, totalWeight int64) (limi
 			theoryLimit = m.GlobalLimit - (totalTheoryLimit - theoryLimit)
 		}
 
-		fmt.Println(pdt.Name, "pdt.Weight", pdt.Weight)
-		fmt.Println(pdt.Name, "totalWeight", totalWeight)
-		fmt.Println(pdt.Name, "weightPercent", weightPercent)
-		fmt.Println(pdt.Name, "pdt.DataCount", pdt.DataCount)
-		fmt.Println(pdt.Name, "theoryLimit", theoryLimit)
+		//		fmt.Println(pdt.Name, "pdt.Weight", pdt.Weight)
+		//		fmt.Println(pdt.Name, "totalWeight", totalWeight)
+		//		fmt.Println(pdt.Name, "weightPercent", weightPercent)
+		//		fmt.Println(pdt.Name, "pdt.DataCount", pdt.DataCount)
+		//		fmt.Println(pdt.Name, "theoryLimit", theoryLimit)
 
 		if pdt.DataCount > theoryLimit {
 			leftDataCountMap[pdt.Name] = pdt.DataCount - theoryLimit
