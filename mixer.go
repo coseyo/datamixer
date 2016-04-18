@@ -7,6 +7,7 @@ import (
 	"sync"
 )
 
+// processDataType is a data type for processing
 type processDataType struct {
 	Name      string
 	Resp      DataResponse
@@ -15,10 +16,12 @@ type processDataType struct {
 	Weight    int64
 }
 
+// Mixer is the mix data struct
 type Mixer struct {
 	GlobalLimit int64
 }
 
+// Mix multi source data into one
 func (m *Mixer) Mix(datas []SourceData) (dataRes DataResponse, nextOffsetMap map[string]int64, err error) {
 	pdts, err := m.processData(datas)
 	if err != nil {
@@ -32,6 +35,7 @@ func (m *Mixer) Mix(datas []SourceData) (dataRes DataResponse, nextOffsetMap map
 	return m.mixResp(pdts)
 }
 
+// processData multi source data and return thd data type
 func (m *Mixer) processData(datas []SourceData) (pdts []processDataType, err error) {
 	var wg sync.WaitGroup
 
@@ -72,8 +76,6 @@ func (m *Mixer) mixResp(pdts []processDataType) (retResp DataResponse, nextOffse
 	totalWeight := m.getTotalWeight(pdts)
 	nextOffsetMap = make(map[string]int64)
 
-	//	fmt.Println("totalWeight", totalWeight)
-
 	limitMap := m.getRealLimitMap(pdts, totalWeight)
 
 	//	fmt.Println("limitMap", limitMap)
@@ -96,6 +98,7 @@ func (m *Mixer) getTotalWeight(pdts []processDataType) (totalWeight int64) {
 	return
 }
 
+// getRealLimitMap return the real limit map for get data
 func (m *Mixer) getRealLimitMap(pdts []processDataType, totalWeight int64) (limitMap map[string]int64) {
 	var (
 		weightPercent float64
